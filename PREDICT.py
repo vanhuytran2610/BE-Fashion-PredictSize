@@ -1,35 +1,44 @@
-from flask import Flask, jsonify, request, Response
+from flask import Flask, jsonify, request
 import pickle
-import json
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 @app.route("/predict-size", methods=["POST"])
 def predict():
-        weight = request.json["weight"]
-        age = request.json["age"]
-        height = request.json["height"]
+    try:
+        data = request.get_json()
+        weight = data["weight"]
+        height = data["height"]
 
-        file_model = "model.pkl"
-        load_model = pickle.load(open(file_model, 'rb'))
+        with open("D:\FashionApp\Predict-Size\BE-Fashion-PredictSize\model.pkl", "rb") as file: 
+            load_model = pickle.load(file)
 
-        size = ["XXS","S","M","L","XL","XXL","XXXL"]
-        prediction = size[load_model.predict([[weight, age, height]])[0]]
+        size = ["XS", "S", "M", "L", "XL", "XXL"]
+        probabilities = load_model.predict_proba([[weight, height]])[0]
+        sorted_indexes = probabilities.argsort()[::-1][:2]  # Get the indices of the top 2 probabilities
+        predictions = [{"size": size[i], "probability": probabilities[i]} for i in sorted_indexes]
 
-        if prediction:
-            serve_model = {
-                "Status": "OK",
-                "Cloth Size": prediction
-            }
-            return jsonify(serve_model)
-        else:
-            error = {
-                "Status": "Error",
-                "Message": "Can not predict cloth-size, please re-enter"
-            }
-            return jsonify(error)
+        serve_model = {
+            "status": 200,
+            "predictions": predictions
+        }
+        return jsonify(serve_model)
+
+    except KeyError:
+        error = {
+            "status": 400,
+            "message": "Invalid request payload"
+        }
+        return jsonify(error)
+
+    except Exception as e:
+        error = {
+            "status": 500,
+            "message": "An error occurred while processing the request"
+        }
+        return jsonify(error)
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-    
