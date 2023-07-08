@@ -12,7 +12,7 @@ def predict():
         weight = data["weight"]
         height = data["height"]
 
-        with open("D:\FashionApp\Predict-Size\BE-Fashion-PredictSize\model.pkl", "rb") as file: 
+        with open("model.pkl", "rb") as file: 
             load_model = pickle.load(file)
 
         size = ["XS", "S", "M", "L", "XL", "XXL"]
